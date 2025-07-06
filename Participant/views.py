@@ -1,50 +1,55 @@
 from django.contrib import messages
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-
-from Participant.models import User
+from Participant.forms import LoginForm, RegisterForm
 
 
 # Auth Views
 
 def register_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-
-        if password1 != password2:
-            messages.error(request, "Passwords don't match")
-            return redirect('register')
-
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already taken")
-            return redirect('register')
-
-        user = User.objects.create_user(username=username, password=password1)
-        login(request, user)
-        messages.success(request, "Account created successfully")
+    # Redirect authenticated users to dashboard
+    if request.user.is_authenticated:
         return redirect('dashboard')
 
-    return render(request, 'auth/register.html')
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f"Account created for {username}")
+
+            return redirect('login')
+    else:
+        form = RegisterForm()
+
+    return render(request, 'auth/register.html', {'form': form})
 
 
 def login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+    # Redirect authenticated users to dashboard
+    if request.user.is_authenticated:
+        return redirect('dashboard')
 
-        if user is not None:
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = LoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
             login(request, user)
             messages.success(request, "Logged in successfully")
             return redirect('dashboard')
         else:
-            messages.error(request, "Invalid credentials")
-            return redirect('login')
+            # Clean up __all__ prefix from error messages
+            for error in form.errors.get('__all__', []):
+                messages.error(request, str(error).replace('__all__: ', ''))
+    else:
+        form = LoginForm(request)
 
-    return render(request, 'auth/login.html')
+    return render(request, 'auth/login.html', {'form': form})
 
 
 @login_required

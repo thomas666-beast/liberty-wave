@@ -2,3 +2,7 @@ asgiref==3.9.0
 Django==5.2.4
 pillow==11.3.0
 sqlparse==0.5.3
+
+pip~=25.1.1
+setuptools~=78.1.0
+django-simple-captcha~=0.6.2

@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'Participant',
     'Video',
     'Channel',
-    'Dashboard'
+    'Dashboard',
+    'captcha',
 ]
 
 MIDDLEWARE = [
@@ -144,3 +145,13 @@ PER_PAGE = 30
 # Login URL
 LOGIN_URL = 'login'
 
+# Custom error pages
+handler404 = 'Dashboard.views.custom_404'
+handler500 = 'Dashboard.views.custom_500'
+
+
+# CAPTCHA Configuration
+CAPTCHA_FONT_SIZE = 40
+CAPTCHA_LENGTH = 6
+CAPTCHA_TIMEOUT = 5  # minutes
+CAPTCHA_CHALLENGE_FUNCT = 'captcha.helpers.random_char_challenge'

@@ -32,6 +32,10 @@
             {% endfor %}
         </div>
     {% else %}
-        <p>You don't have any videos yet. <a href="{% url 'video_create' %}">Upload one now</a>.</p>
+        {% if user.videos %}
+            <p>You don't have any videos yet. <a href="{% url 'video_create' %}">Upload one now</a>.</p>
+        {% else %}
+            <p>You don't have any channels yet. <a href="{% url 'channel_create' %}">Create one now</a>.</p>
+        {% endif %}
     {% endif %}
 {% endblock %}
