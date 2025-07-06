@@ -22,6 +22,7 @@ from Channel.views import channel_index_view, channel_create_view, channel_show_
 from Dashboard.views import dashboard_view
 from LibertyWave import settings
 from Participant.views import register_view, login_view, logout_view
+from Video import views
 from Video.views import video_index_view, video_create_view, video_show_view, video_edit_view, protected_media
 
 urlpatterns = [
@@ -47,6 +48,8 @@ urlpatterns = [
     path('videos/new/<uuid:channel_id>/', video_create_view, name='video_create_for_channel'),
     path('videos/<uuid:video_id>/', video_show_view, name='video_show'),
     path('videos/<uuid:video_id>/edit/', video_edit_view, name='video_edit'),
+
+    path('all-videos/', views.all_videos, name='all_videos'),
 
     # Protected media URL pattern
     re_path(r'^protected/(?P<path>.*)$', protected_media, name='protected_media'),

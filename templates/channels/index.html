@@ -22,6 +22,11 @@
                     <div class="card-body">
                         <h3 class="card-title">{{ channel.name }}</h3>
                         <p class="card-text">{{ channel.description|truncatechars:50 }}</p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                Created: {{ channel.created_at|date:"M d, Y" }}
+                            </small>
+                        </p>
                     </div>
                 </a>
             {% endfor %}

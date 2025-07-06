@@ -3,6 +3,8 @@ import os
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 
@@ -106,3 +108,25 @@ def protected_media(request, path):
         # For example, check if user owns the video
         return FileResponse(open(file_path, 'rb'))
     raise Http404("File not found")
+
+
+def all_videos(request):
+    search_query = request.GET.get('q', '')
+
+    video_list = Video.objects.all().order_by('-created_at')
+
+    if search_query:
+        video_list = video_list.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query)
+        )
+
+    paginator = Paginator(video_list, 12)  # Show 12 videos per page
+    page_number = request.GET.get('page')
+    videos = paginator.get_page(page_number)
+
+    return render(request, 'videos/all_videos.html', {
+        'videos': videos,
+        'search_query': search_query
+    })
+

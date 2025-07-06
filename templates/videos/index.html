@@ -22,6 +22,11 @@
                         <h3 class="card-title">{{ video.title }}</h3>
                         <p class="card-text">{{ video.description|truncatechars:50 }}</p>
                         <p class="card-text">Channel: {{ video.channel.name }}</p>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="far fa-clock"></i> {{ video.created_at|date:"M d, Y" }}
+                            </small>
+                        </p>
                     </div>
                 </a>
             {% endfor %}

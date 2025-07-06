@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Video Explorer{% endblock %}
+
+{% block content %}
+    <h1>Video Explorer</h1>
+
+    <!-- Search Form -->
+    <div class="search-container">
+        <form method="get" action="{% url 'all_videos' %}" class="search-form">
+            <div class="search-group">
+                <input type="text"
+                    name="q"
+                    class="search-input"
+                    placeholder="Search videos by title or description..."
+                    value="{{ request.GET.q }}"
+                    aria-label="Search"
+                />
+                <button class="search-btn" type="submit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                    </svg>
+                </button>
+            </div>
+        </form>
+        {% if request.GET.q %}
+            <div class="search-results-info">
+                <p>Showing results for:
+                    <strong>"{{ request.GET.q }}"</strong>
+                    <a href="{% url 'all_videos' %}" class="clear-search">(Clear search)</a>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if videos %}
+        <div class="grid">
+            {% for video in videos %}
+                <a href="{% url 'video_show' video.id %}" class="card">
+                    {% if video.thumbnail %}
+                        <img src="{% url 'protected_media' video.thumbnail.name %}"
+                             alt="{{ video.title }}"
+                             style="width: 100%; height: 180px; object-fit: cover;">
+                    {% else %}
+                        <div class="card-img" style="width: 100%; height: 180px; background-color: #333; display: flex; align-items: center; justify-content: center;">
+                            <span>No thumbnail</span>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h3 class="card-title">{{ video.title }}</h3>
+                        <p class="card-text">{{ video.description|truncatechars:50 }}</p>
+                        <div class="video-meta">
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-user"></i> {{ video.channel.name }}
+                                    {% if video.user == request.user %}
+                                        <span class="badge">Your video</span>
+                                    {% endif %}
+                                </small>
+                            </p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="far fa-clock"></i> {{ video.created_at|date:"M d, Y" }}
+                                </small>
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+
+        {% include 'pagination.html' with page_obj=videos %}
+    {% else %}
+        {% if request.GET.q %}
+            <div class="alert alert-info">
+                No videos found matching your search.
+            </div>
+        {% else %}
+            <p>No videos available yet.</p>
+        {% endif %}
+    {% endif %}
+{% endblock %}
