@@ -10,7 +10,7 @@ db.sqlite3-journal
 # Media and static files
 /media/
 /staticfiles/
-/static/
+#/static/
 
 # Environments
 .env
