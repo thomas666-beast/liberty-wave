@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
 :root {
     --bg-dark: #1a1a1a;
     --bg-darker: #121212;
@@ -46,8 +48,8 @@ body {
 .container {
     width: 100%;
     max-width: 1200px;
-    margin: 0 auto;
     padding: 0 1.5rem;
+    margin: 10px auto 0;
 }
 
 header {

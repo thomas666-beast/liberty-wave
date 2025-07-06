@@ -3,7 +3,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-    <h1>Welcome, {{ user.username }}</h1>
+    <h2>Welcome, {{ user.username }}</h2>
 
     <div class="grid">
         <a href="{% url 'channel_index' %}" class="card">
