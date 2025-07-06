@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ video.title }}{% endblock %}
+
+{% block content %}
+    <h1>Edit Video</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" value="{{ video.title }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="4">{{ video.description }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="thumbnail">Thumbnail</label>
+            <input type="file" id="thumbnail" name="thumbnail">
+            {% if video.thumbnail %}
+                <p>Current: <a href="{{ video.thumbnail.url }}">{{ video.thumbnail.name }}</a></p>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="video_file">Video</label>
+            <input type="file" id="video_file" name="video_file">
+            {% if video.video_file %}
+                <p>Current: <a href="{{ video.video_file.url }}">{{ video.video_file.name }}</a></p>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="channel">Channel</label>
+            <select id="channel" name="channel" required>
+                {% for channel in user_channels %}
+                    <option value="{{ channel.id }}" {% if channel.id == video.channel.id %}selected{% endif %}>{{ channel.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn">Save Changes</button>
+{#        <a href="{% url 'video_show' video.id %}" class="btn btn-secondary">Cancel</a>#}
+    </form>
+{% endblock %}

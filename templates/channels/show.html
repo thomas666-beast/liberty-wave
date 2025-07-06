@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ channel.name }}{% endblock %}
+
+{% block content %}
+    <div class="channel-header">
+        {% if channel.logo %}
+            <img src="{{ channel.logo.url }}" alt="{{ channel.name }}" class="channel-logo">
+        {% else %}
+            <div class="channel-logo" style="background-color: #333; display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 3rem;">{{ channel.name|first|upper }}</span>
+            </div>
+        {% endif %}
+
+        <div>
+            <h1>{{ channel.name }}</h1>
+            <p>{{ channel.description }}</p>
+
+            {% if user == channel.owner %}
+                <div style="margin-top: 1rem;">
+                    <a href="{% url 'channel_edit' channel.id %}" class="btn">Edit Channel</a>
+                    <a href="{% url 'video_create_for_channel' channel.id %}" class="btn">Upload Video</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <h2>Videos</h2>
+
+    {% if videos %}
+        <div class="grid">
+            {% for video in videos %}
+                <a href="{% url 'video_show' video.id %}" class="card">
+                    {% if video.thumbnail %}
+                        <img src="{{ video.thumbnail.url }}" alt="{{ video.title }}" class="card-img">
+                    {% else %}
+                        <div class="card-img" style="background-color: #333; display: flex; align-items: center; justify-content: center;">
+                            <span>No thumbnail</span>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h3 class="card-title">{{ video.title }}</h3>
+                        <p class="card-text">{{ video.description|truncatechars:50 }}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No videos in this channel yet.</p>
+    {% endif %}
+{% endblock %}

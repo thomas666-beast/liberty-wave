@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}My Channels{% endblock %}
+
+{% block content %}
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>My Channels</h1>
+        <a href="{% url 'channel_create' %}" class="btn">Create Channel</a>
+    </div>
+
+    {% if channels %}
+        <div class="grid">
+            {% for channel in channels %}
+                <a href="{% url 'channel_show' channel.id %}" class="card">
+                    {% if channel.logo %}
+                        <img src="{{ channel.logo.url }}" alt="{{ channel.name }}" class="card-img">
+                    {% else %}
+                        <div class="card-img" style="background-color: #333; display: flex; align-items: center; justify-content: center;">
+                            <span>{{ channel.name|first|upper }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h3 class="card-title">{{ channel.name }}</h3>
+                        <p class="card-text">{{ channel.description|truncatechars:50 }}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You don't have any channels yet. <a href="{% url 'channel_create' %}">Create one now</a>.</p>
+    {% endif %}
+{% endblock %}

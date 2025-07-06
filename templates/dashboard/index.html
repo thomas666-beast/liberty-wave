@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <h1>Welcome, {{ user.username }}</h1>
+
+    <div class="grid">
+        <a href="{% url 'channel_index' %}" class="card">
+            <div class="card-body">
+                <h3 class="card-title">My Channels</h3>
+                <p class="card-text">Manage your broadcast channels</p>
+            </div>
+        </a>
+
+        <a href="{% url 'video_index' %}" class="card">
+            <div class="card-body">
+                <h3 class="card-title">My Videos</h3>
+                <p class="card-text">Upload and manage your videos</p>
+            </div>
+        </a>
+    </div>
+{% endblock %}

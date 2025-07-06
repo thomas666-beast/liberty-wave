@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}My Videos{% endblock %}
+
+{% block content %}
+    <h1>My Videos</h1>
+
+    {% if videos %}
+        <div class="grid">
+            {% for video in videos %}
+                <a href="{% url 'video_show' video.id %}" class="card">
+                    {% if video.thumbnail %}
+                        <img src="{% url 'protected_media' video.thumbnail.name %}"
+                             alt="{{ video.title }}"
+                             style="width: 100%; height: 180px; object-fit: cover;">
+                    {% else %}
+                        <div class="card-img" style="width: 100%; height: 180px; background-color: #333; display: flex; align-items: center; justify-content: center;">
+                            <span>No thumbnail</span>
+                        </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h3 class="card-title">{{ video.title }}</h3>
+                        <p class="card-text">{{ video.description|truncatechars:50 }}</p>
+                        <p class="card-text">Channel: {{ video.channel.name }}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You don't have any videos yet. <a href="{% url 'video_create' %}">Upload one now</a>.</p>
+    {% endif %}
+{% endblock %}
