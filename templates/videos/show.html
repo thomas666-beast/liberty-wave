@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% load link_filters %}
+
 {% block title %}{{ video.title }}{% endblock %}
 
 {% block content %}
@@ -17,7 +19,7 @@
     </p>
     <h1>{{ video.title }}</h1>
     <p>Uploaded to: <a href="{% url 'channel_show' video.channel.id %}">{{ video.channel.name }}</a></p>
-    <p>{{ video.description }}</p>
+    <p>{{ video.description|urlize_target_blank|safe_html|linebreaks }}</p>
 
 
     {% if user == video.channel.owner %}
