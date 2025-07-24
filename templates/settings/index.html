@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Settings - LibertyWave{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-sidebar">
+        <div class="settings-header">
+            <h2><i class="fas fa-cog"></i> Settings</h2>
+        </div>
+        <ul class="settings-menu">
+            <li class="{% if active_tab == 'password' %}active{% endif %}">
+                <a href="{% url 'password_change' %}"><i class="fas fa-lock"></i> Password</a>
+            </li>
+            <li class="{% if active_tab == 'profile' %}active{% endif %}">
+                <a href="#"><i class="fas fa-user"></i> Profile</a>
+            </li>
+            <li class="{% if active_tab == 'notifications' %}active{% endif %}">
+                <a href="#"><i class="fas fa-bell"></i> Notifications</a>
+            </li>
+            <li class="{% if active_tab == 'privacy' %}active{% endif %}">
+                <a href="#"><i class="fas fa-shield-alt"></i> Privacy</a>
+            </li>
+        </ul>
+
+    </div>
+
+    <div class="settings-content">
+        <div class="settings-card">
+            <h3><i class="fas fa-lock"></i> Change Password</h3>
+            <p class="settings-description">Update your account password. Make sure it's strong and unique.</p>
+
+            <form method="post" class="password-form">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-error">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="{{ form.old_password.id_for_label }}">
+                        <i class="fas fa-key"></i> Current Password
+                    </label>
+                    {{ form.old_password }}
+                    {% if form.old_password.errors %}
+                        <div class="form-error">{{ form.old_password.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.new_password1.id_for_label }}">
+                        <i class="fas fa-key"></i> New Password
+                    </label>
+                    {{ form.new_password1 }}
+                    <div class="password-requirements">
+                        <p>Your password must contain:</p>
+                        <ul>
+                            <li class="{% if form.new_password1.value|length >= 8 %}valid{% endif %}">At least 8 characters</li>
+                            <li class="{% if form.new_password1.value and not form.new_password1.value.isnumeric %}valid{% endif %}">Not entirely numeric</li>
+                        </ul>
+                    </div>
+                    {% if form.new_password1.errors %}
+                        <div class="form-error">{{ form.new_password1.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.new_password2.id_for_label }}">
+                        <i class="fas fa-key"></i> Confirm New Password
+                    </label>
+                    {{ form.new_password2 }}
+                    {% if form.new_password2.errors %}
+                        <div class="form-error">{{ form.new_password2.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Password
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

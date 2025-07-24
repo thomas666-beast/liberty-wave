@@ -21,7 +21,7 @@ from django.urls import path, re_path, include
 from Channel.views import channel_index_view, channel_create_view, channel_show_view, channel_edit_view
 from Dashboard.views import dashboard_view, custom_404, custom_500
 from LibertyWave import settings
-from Participant.views import register_view, login_view, logout_view
+from Participant.views import register_view, login_view, logout_view, settings_view, password_change_view
 from Video import views
 from Video.views import video_index_view, video_create_view, video_show_view, video_edit_view, protected_media
 
@@ -36,6 +36,9 @@ urlpatterns = [
     path('register/', register_view, name='register'),
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
+
+    path('settings/', settings_view, name='settings'),
+    path('settings/password/', password_change_view, name='password_change'),
 
     # Dashboard URL
     path('dashboard/', dashboard_view, name='dashboard'),
