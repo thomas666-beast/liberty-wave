@@ -1,49 +1,261 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Edit {{ video.title }}{% endblock %}
+{% block title %}{% if is_create %}Upload New Video{% else %}Edit {{ video.title }}{% endif %}{% endblock %}
 
 {% block content %}
-    <h1>Edit Video</h1>
+    <h1>{% if is_create %}Upload New Video{% else %}Edit Video{% endif %}</h1>
 
-    <form method="post" enctype="multipart/form-data">
+    <form id="videoForm" method="post" enctype="multipart/form-data">
         {% csrf_token %}
+        {% if not is_create %}
+            <input type="hidden" id="video_id" value="{{ video.id }}">
+        {% endif %}
 
         <div class="form-group">
-            <label for="title">Title</label>
-            <input type="text" id="title" name="title" value="{{ video.title }}" required>
+            <label for="title" class="required-field">Title</label>
+            <input type="text" id="title" name="title" value="{% if not is_create %}{{ video.title }}{% endif %}" required>
         </div>
 
         <div class="form-group">
             <label for="description">Description</label>
-            <textarea id="description" name="description" rows="4">{{ video.description }}</textarea>
+            <textarea id="description" name="description" rows="4">{% if not is_create %}{{ video.description }}{% endif %}</textarea>
         </div>
 
         <div class="form-group">
             <label for="thumbnail">Thumbnail</label>
-            <input type="file" id="thumbnail" name="thumbnail">
-            {% if video.thumbnail %}
-                <p>Current: <a href="{{ video.thumbnail.url }}">{{ video.thumbnail.name }}</a></p>
+            <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
+            {% if not is_create and video.thumbnail %}
+                <p>Current: <img src="{{ video.thumbnail.url }}" alt="Current thumbnail" style="max-width: 200px; margin-top: 10px; border-radius: var(--radius-sm);"></p>
             {% endif %}
+            <img id="thumbnailPreview" class="thumbnail-preview" src="#" alt="Thumbnail preview">
+            <p class="text-muted">{% if is_create %}Leave empty to generate from video{% else %}Upload a new thumbnail or leave empty to keep current{% endif %}</p>
         </div>
 
         <div class="form-group">
-            <label for="video_file">Video</label>
-            <input type="file" id="video_file" name="video_file">
-            {% if video.video_file %}
+            <label for="video_file" class="required-field">Video</label>
+            <input type="file" id="video_file" name="video_file" accept="video/*" {% if is_create %}required{% endif %}>
+            {% if not is_create and video.video_file %}
                 <p>Current: <a href="{{ video.video_file.url }}">{{ video.video_file.name }}</a></p>
+                <p class="text-muted">Upload a new video to generate a thumbnail automatically if needed.</p>
             {% endif %}
+            <video id="videoPreview" class="video-preview" controls></video>
         </div>
 
         <div class="form-group">
-            <label for="channel">Channel</label>
+            <label for="channel" class="required-field">Channel</label>
             <select id="channel" name="channel" required>
                 {% for channel in user_channels %}
-                    <option value="{{ channel.id }}" {% if channel.id == video.channel.id %}selected{% endif %}>{{ channel.name }}</option>
+                    <option value="{{ channel.id }}"
+                        {% if not is_create and channel.id == video.channel.id %}selected
+                        {% elif is_create and initial_channel and channel.id == initial_channel.id %}selected
+                        {% endif %}>
+                        {{ channel.name }}
+                    </option>
                 {% endfor %}
             </select>
         </div>
 
-        <button type="submit" class="btn">Save Changes</button>
-{#        <a href="{% url 'video_show' video.id %}" class="btn btn-secondary">Cancel</a>#}
+        <div class="progress-container" id="uploadProgress">
+            <div class="progress-bar" id="progressBar">0%</div>
+        </div>
+
+        <div id="uploadStatus" class="upload-status"></div>
+
+        <button type="submit" class="btn" id="submitBtn">
+            {% if is_create %}Upload Video{% else %}Save Changes{% endif %}
+        </button>
+        {% if not is_create %}
+            <a href="{% url 'video_show' video.id %}" class="btn btn-secondary">Cancel</a>
+        {% else %}
+            <a href="{% url 'video_index' %}" class="btn btn-secondary">Cancel</a>
+        {% endif %}
     </form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('videoForm');
+        const videoInput = document.getElementById('video_file');
+        const thumbnailInput = document.getElementById('thumbnail');
+        const thumbnailPreview = document.getElementById('thumbnailPreview');
+        const videoPreview = document.getElementById('videoPreview');
+        const progressContainer = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const submitBtn = document.getElementById('submitBtn');
+        const videoIdInput = document.getElementById('video_id');
+        const videoId = videoIdInput ? videoIdInput.value : null;
+        const isCreate = {% if is_create %}true{% else %}false{% endif %};
+
+        // Thumbnail preview
+        thumbnailInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    thumbnailPreview.src = e.target.result;
+                    thumbnailPreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                thumbnailPreview.style.display = 'none';
+            }
+        });
+
+        // Video preview
+        videoInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                videoPreview.src = url;
+                videoPreview.style.display = 'block';
+
+                // Show info about thumbnail generation
+                if (!thumbnailInput.files[0] && (!isCreate || !{{ video.thumbnail|yesno:"true,false" }})) {
+                    uploadStatus.textContent = 'A thumbnail will be automatically generated from your video if you don\'t upload one.';
+                    uploadStatus.className = 'upload-status status-info';
+                    uploadStatus.style.display = 'block';
+                }
+            } else {
+                videoPreview.style.display = 'none';
+                uploadStatus.style.display = 'none';
+            }
+        });
+
+        // Form validation
+        form.addEventListener('submit', function(e) {
+            // Basic validation
+            const title = document.getElementById('title').value.trim();
+            const channel = document.getElementById('channel').value;
+            const videoFile = document.getElementById('video_file').files[0];
+
+            if (!title) {
+                e.preventDefault();
+                uploadStatus.textContent = 'Please enter a title for your video.';
+                uploadStatus.className = 'upload-status status-error';
+                uploadStatus.style.display = 'block';
+                return;
+            }
+
+            if (!channel) {
+                e.preventDefault();
+                uploadStatus.textContent = 'Please select a channel.';
+                uploadStatus.className = 'upload-status status-error';
+                uploadStatus.style.display = 'block';
+                return;
+            }
+
+            if (isCreate && !videoFile) {
+                e.preventDefault();
+                uploadStatus.textContent = 'Please select a video file to upload.';
+                uploadStatus.className = 'upload-status status-error';
+                uploadStatus.style.display = 'block';
+                return;
+            }
+        });
+
+        // AJAX form submission with progress bar
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            const xhr = new XMLHttpRequest();
+
+            // Show progress bar
+            progressContainer.style.display = 'block';
+            uploadStatus.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Uploading...';
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.textContent = Math.round(percentComplete) + '%';
+
+                    // Update status text for large files
+                    if (percentComplete < 100) {
+                        uploadStatus.textContent = `Uploading... ${Math.round(percentComplete)}% complete`;
+                        uploadStatus.className = 'upload-status status-info';
+                        uploadStatus.style.display = 'block';
+                    }
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                if (xhr.status === 200) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+
+                        if (response.success) {
+                            // Success
+                            uploadStatus.textContent = isCreate ?
+                                'Video uploaded successfully! Redirecting...' :
+                                'Video updated successfully! Redirecting...';
+                            uploadStatus.className = 'upload-status status-success';
+                            uploadStatus.style.display = 'block';
+
+                            // Redirect to the video page
+                            setTimeout(function() {
+                                if (response.redirect_url) {
+                                    window.location.href = response.redirect_url;
+                                } else if (response.video_id) {
+                                    window.location.href = `/videos/${response.video_id}/`;
+                                } else {
+                                    // Fallback
+                                    window.location.href = "{% if is_create %}{% url 'video_index' %}{% else %}{% url 'video_show' video.id %}{% endif %}";
+                                }
+                            }, 1500);
+                        } else {
+                            // Server returned success:false
+                            uploadStatus.textContent = response.error || 'Error processing your request.';
+                            uploadStatus.className = 'upload-status status-error';
+                            uploadStatus.style.display = 'block';
+
+                            progressContainer.style.display = 'none';
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = isCreate ? 'Upload Video' : 'Save Changes';
+                        }
+                    } catch (e) {
+                        // JSON parse error
+                        handleUploadError('Invalid response from server.');
+                    }
+                } else {
+                    // HTTP error status
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        handleUploadError(response.error || `Server error: ${xhr.status} ${xhr.statusText}`);
+                    } catch (e) {
+                        handleUploadError(`Server error: ${xhr.status} ${xhr.statusText}`);
+                    }
+                }
+            });
+
+            xhr.addEventListener('error', function() {
+                handleUploadError('Network error. Please check your connection and try again.');
+            });
+
+            xhr.addEventListener('abort', function() {
+                handleUploadError('Upload was cancelled.');
+            });
+
+            // Helper function for error handling
+            function handleUploadError(message) {
+                uploadStatus.textContent = message;
+                uploadStatus.className = 'upload-status status-error';
+                uploadStatus.style.display = 'block';
+
+                progressContainer.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = isCreate ? 'Upload Video' : 'Save Changes';
+            }
+
+            xhr.open('POST', window.location.href);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.send(formData);
+        });
+    });
+</script>
 {% endblock %}

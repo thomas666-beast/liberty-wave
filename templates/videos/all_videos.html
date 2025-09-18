@@ -47,15 +47,17 @@
                         </div>
                     {% endif %}
                     <div class="card-body">
+                        <p class="card-text">
+                            <small class="text-muted">
+                                Author: {{ video.channel.owner }}
+                            </small>
+                        </p>
                         <h3 class="card-title">{{ video.title }}</h3>
                         <p class="card-text">{{ video.description|truncatechars:50 }}</p>
                         <div class="video-meta">
                             <p class="card-text">
                                 <small class="text-muted">
-                                    <i class="fas fa-user"></i> {{ video.channel.name }}
-                                    {% if video.user == request.user %}
-                                        <span class="badge">Your video</span>
-                                    {% endif %}
+                                    Channel: {{ video.channel.name }}
                                 </small>
                             </p>
                             <p class="card-text">

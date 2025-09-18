@@ -1,8 +1,7 @@
-asgiref==3.9.0
-bleach==6.2.0
-Django==5.2.4
-django-ranged-response==0.2.0
-django-simple-captcha==0.6.2
-pillow==11.3.0
-sqlparse==0.5.3
-webencodings==0.5.1
+opencv-python
+Django
+django-ranged-response
+django-simple-captcha
+pillow
+sqlparse
+webencodings

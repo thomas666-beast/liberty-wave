@@ -128,7 +128,7 @@ h3 {
 }
 
 p {
-    margin-bottom: 1rem;
+    margin-bottom: 1px;
 }
 
 a {
@@ -854,3 +854,31 @@ footer p {
         width: 100%;
     }
 }
+
+.progress-container {
+    display: none;
+    margin: 15px 0;
+    background-color: var(--bg-darker);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 20px;
+    background-color: var(--primary);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.thumbnail-preview {
+    margin-top: 10px;
+    max-width: 200px;
+    display: none;
+}
+
+.video-preview {
+    margin-top: 10px;
+    max-width: 100%;
+    display: none;
+}
+

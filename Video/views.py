@@ -3,14 +3,17 @@ import os
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.files import File
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 
 from Channel.models import Channel
 from LibertyWave import settings
 from Video.models import Video
+from Video.utils import generate_thumbnail_from_video
 
 
 # Video Views
@@ -23,30 +26,8 @@ def video_index_view(request):
 
 
 @login_required
-def video_create_view(request, channel_id):
+def video_create_view(request, channel_id=None):
     user_channels = Channel.objects.filter(owner=request.user)
-
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        description = request.POST.get('description')
-        video_file = request.FILES.get('video_file')
-        thumbnail = request.FILES.get('thumbnail')
-        channel_id = request.POST.get('channel')
-
-        channel = get_object_or_404(Channel, id=channel_id)
-
-        if channel.owner != request.user:
-            raise PermissionDenied
-
-        video = Video.objects.create(
-            channel=channel,
-            title=title,
-            description=description,
-            video_file=video_file,
-            thumbnail=thumbnail
-        )
-        messages.success(request, "Video uploaded successfully")
-        return redirect('video_show', video.id)
 
     # If channel_id is provided, preselect that channel
     initial_channel = None
@@ -55,17 +36,104 @@ def video_create_view(request, channel_id):
         if initial_channel.owner != request.user:
             raise PermissionDenied
 
+    if request.method == 'POST':
+        # Handle AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            try:
+                title = request.POST.get('title')
+                description = request.POST.get('description')
+                video_file = request.FILES.get('video_file')
+                thumbnail = request.FILES.get('thumbnail')
+                channel_id = request.POST.get('channel')
+
+                channel = get_object_or_404(Channel, id=channel_id)
+
+                if channel.owner != request.user:
+                    return JsonResponse({'error': 'Permission denied'}, status=403)
+
+                # Create video instance
+                video = Video(
+                    channel=channel,
+                    title=title,
+                    description=description,
+                    video_file=video_file,
+                    thumbnail=thumbnail
+                )
+
+                video.save()
+
+                # Generate thumbnail from video if no thumbnail provided and video was uploaded
+                if video_file and not thumbnail:
+                    try:
+                        thumbnail_path = generate_thumbnail_from_video(video.video_file.path)
+                        with open(thumbnail_path, 'rb') as f:
+                            from django.core.files import File
+                            video.thumbnail.save(
+                                f"thumbnail_{video.id}.jpg",
+                                File(f),
+                                save=True
+                            )
+                        # Clean up temporary file
+                        os.remove(thumbnail_path)
+                    except Exception as e:
+                        # Log error but don't break the flow
+                        print(f"Error generating thumbnail: {e}")
+
+                # Return success with video ID
+                return JsonResponse({
+                    'success': True,
+                    'video_id': video.id,
+                    'redirect_url': reverse('video_show', kwargs={'video_id': video.id})
+                })
+            except Exception as e:
+                return JsonResponse({'error': str(e)}, status=400)
+
+        # Regular form submission (non-AJAX)
+        else:
+            title = request.POST.get('title')
+            description = request.POST.get('description')
+            video_file = request.FILES.get('video_file')
+            thumbnail = request.FILES.get('thumbnail')
+            channel_id = request.POST.get('channel')
+
+            channel = get_object_or_404(Channel, id=channel_id)
+
+            if channel.owner != request.user:
+                raise PermissionDenied
+
+            video = Video.objects.create(
+                channel=channel,
+                title=title,
+                description=description,
+                video_file=video_file,
+                thumbnail=thumbnail
+            )
+
+            # Generate thumbnail from video if no thumbnail provided and video was uploaded
+            if video_file and not thumbnail:
+                try:
+                    thumbnail_path = generate_thumbnail_from_video(video.video_file.path)
+                    with open(thumbnail_path, 'rb') as f:
+                        from django.core.files import File
+                        video.thumbnail.save(
+                            f"thumbnail_{video.id}.jpg",
+                            File(f),
+                            save=True
+                        )
+                    # Clean up temporary file
+                    os.remove(thumbnail_path)
+                except Exception as e:
+                    # Log error but don't break the flow
+                    print(f"Error generating thumbnail: {e}")
+
+            messages.success(request, "Video uploaded successfully")
+            return redirect('video_show', video.id)
+
     return render(request, 'videos/edit.html', {
         'user_channels': user_channels,
-        'initial_channel': initial_channel
+        'initial_channel': initial_channel,
+        'is_create': True  # Flag to indicate this is a create view
     })
-
-
-@login_required
-def video_show_view(request, video_id):
-    video = get_object_or_404(Video, id=video_id)
-    video.increment_views()
-    return render(request, 'videos/show.html', {'video': video})
 
 
 @login_required
@@ -77,24 +145,99 @@ def video_edit_view(request, video_id):
         raise PermissionDenied
 
     if request.method == 'POST':
-        video.title = request.POST.get('title')
-        video.description = request.POST.get('description')
-        video.channel = get_object_or_404(Channel, id=request.POST.get('channel'))
+        # Handle AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            try:
+                video.title = request.POST.get('title')
+                video.description = request.POST.get('description')
+                video.channel = get_object_or_404(Channel, id=request.POST.get('channel'))
 
-        if 'thumbnail' in request.FILES:
-            video.thumbnail = request.FILES['thumbnail']
+                # Handle thumbnail upload
+                if 'thumbnail' in request.FILES:
+                    video.thumbnail = request.FILES['thumbnail']
 
-        if 'video_file' in request.FILES:
-            video.video_file = request.FILES['video_file']
+                # Handle video file upload
+                video_file_uploaded = False
+                if 'video_file' in request.FILES:
+                    video.video_file = request.FILES['video_file']
+                    video_file_uploaded = True
 
-        video.save()
-        messages.success(request, "Video updated successfully")
-        return redirect('video_show', video.id)
+                video.save()
+
+                # Generate thumbnail from video if no thumbnail provided and video was uploaded
+                if video_file_uploaded and not video.thumbnail:
+                    try:
+                        thumbnail_path = generate_thumbnail_from_video(video.video_file.path)
+                        with open(thumbnail_path, 'rb') as f:
+                            from django.core.files import File
+                            video.thumbnail.save(
+                                f"thumbnail_{video.id}.jpg",
+                                File(f),
+                                save=True
+                            )
+                        # Clean up temporary file
+                        os.remove(thumbnail_path)
+                    except Exception as e:
+                        # Log error but don't break the flow
+                        print(f"Error generating thumbnail: {e}")
+
+                # Return success with video ID
+                return JsonResponse({
+                    'success': True,
+                    'video_id': video.id,
+                    'redirect_url': reverse('video_show', kwargs={'video_id': video.id})
+                })
+            except Exception as e:
+                return JsonResponse({'error': str(e)}, status=400)
+
+        # Regular form submission (non-AJAX)
+        else:
+            video.title = request.POST.get('title')
+            video.description = request.POST.get('description')
+            video.channel = get_object_or_404(Channel, id=request.POST.get('channel'))
+
+            if 'thumbnail' in request.FILES:
+                video.thumbnail = request.FILES['thumbnail']
+
+            video_file_uploaded = False
+            if 'video_file' in request.FILES:
+                video.video_file = request.FILES['video_file']
+                video_file_uploaded = True
+
+            video.save()
+
+            # Generate thumbnail from video if no thumbnail provided and video was uploaded
+            if video_file_uploaded and not video.thumbnail:
+                try:
+                    thumbnail_path = generate_thumbnail_from_video(video.video_file.path)
+                    with open(thumbnail_path, 'rb') as f:
+                        from django.core.files import File
+                        video.thumbnail.save(
+                            f"thumbnail_{video.id}.jpg",
+                            File(f),
+                            save=True
+                        )
+                    # Clean up temporary file
+                    os.remove(thumbnail_path)
+                except Exception as e:
+                    # Log error but don't break the flow
+                    print(f"Error generating thumbnail: {e}")
+
+            messages.success(request, "Video updated successfully")
+            return redirect('video_show', video.id)
 
     return render(request, 'videos/edit.html', {
         'video': video,
-        'user_channels': user_channels
+        'user_channels': user_channels,
+        'is_create': False  # Flag to indicate this is an edit view
     })
+
+
+@login_required
+def video_show_view(request, video_id):
+    video = get_object_or_404(Video, id=video_id)
+    video.increment_views()
+    return render(request, 'videos/show.html', {'video': video})
 
 
 @login_required
