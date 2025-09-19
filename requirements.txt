@@ -1,7 +1,7 @@
-opencv-python
 Django
 django-ranged-response
 django-simple-captcha
 pillow
 sqlparse
 webencodings
+moviepy

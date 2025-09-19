@@ -1,40 +1,33 @@
 import tempfile
 
-import cv2
+from moviepy import VideoFileClip
 
 
 def generate_thumbnail_from_video(video_path):
     """
     Generate a thumbnail from a video file by extracting a frame at 25% of the video duration
+    using MoviePy.
     """
     try:
         # Open the video file
-        cap = cv2.VideoCapture(video_path)
+        clip = VideoFileClip(video_path)
 
-        # Get total frames and set position to 25% of the video
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        frame_pos = int(total_frames * 0.25)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_pos)
+        # Get the frame at 25% of the video duration
+        frame_time = clip.duration * 0.25
 
-        # Read the frame
-        success, frame = cap.read()
-        cap.release()
-
-        if not success:
-            # If failed to read at 25%, try the first frame
-            cap = cv2.VideoCapture(video_path)
-            success, frame = cap.read()
-            cap.release()
-            if not success:
-                raise Exception("Could not read video frame")
+        # Get the frame
+        frame = clip.get_frame(frame_time)
 
         # Create a temporary file for the thumbnail
         temp_file = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
         temp_path = temp_file.name
         temp_file.close()
 
-        # Save the frame as an image
-        cv2.imwrite(temp_path, frame)
+        # Save the frame as an image using MoviePy's built-in method
+        clip.save_frame(temp_path, t=frame_time)
+
+        # Close the clip
+        clip.close()
 
         return temp_path
     except Exception as e:
